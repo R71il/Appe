@@ -1,0 +1,22 @@
+{
+    "apps": [
+        {
+            "ipaId": "176",
+            "bundleID": "com.burbn.instagram",
+            "downloadURL": "Hhh",
+            "iconURL": "https:\/\/is1-ssl.mzstatic.com\/image\/thumb\/Purple211\/v4\/7f\/29\/0d\/7f290d2d-8fe8-2aad-2071-1470b98c85b3\/Prod-0-0-1x_U007ephone-0-1-0-85-220.png\/100x100bb.jpg",
+            "name": "Instagram",
+            "size": "365691904",
+            "subtitle": "Hhh",
+            "version": "19.47.7",
+            "versionDate": "2024-12-03T13:44:38",
+            "type": [
+                1,
+                3,
+                6
+            ],
+            "app": "Instagram",
+            "description": "Hhh"
+        }
+    ]
+}

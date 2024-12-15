@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تعديل معلومات التطبيق</title>
+ <style>
+    body {
+        font-family: Arial, sans-serif;
+        direction: rtl;
+        padding: 20px;
+        background-color: #121212; /* لون داكن للخلفية */
+        color: #f4f4f4; /* لون نص فاتح */
+    }
+    .modal-content {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #444;
+        border-radius: 5px;
+        background-color: #1e1e1e; /* لون غامق للمربع */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    label {
+        margin-top: 10px;
+        display: block;
+        font-weight: bold;
+        color: #ffffff; /* لون النص */
+    }
+    input, textarea, button {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #555;
+        border-radius: 5px;
+        background-color: #2c2c2c; /* لون خلفية الحقول */
+        color: #f4f4f4; /* لون النص داخل الحقول */
+    }
+    button {
+        background-color: #4CAF50;
+        color: white;
+        cursor: pointer;
+        border: none;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    button:disabled {
+        background-color: #666;
+        cursor: not-allowed;
+    }
+    button:focus {
+        outline: none;
+    }
+    .app-image {
+        margin-top: 10px;
+        border-radius: 15px;
+        max-width: 100px;
+        max-height: 100px;
+        border: 2px solid #444;
+    }
+    ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #1e1e1e;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #444;
+        border-radius: 5px;
+    }
+    li:hover {
+        background-color: #292929;
+    }
+    li img {
+        margin-left: 10px;
+    }
+</style>
+</head>
+<body>
+<button id="updateApps" onclick="checkForUpdates()">حدث إذا متوفر</button>
+    <h2>بحث عن تطبيقات Apple</h2>
+    <label for="searchTerm">اسم التطبيق:</label>
+    <input type="text" id="searchTerm" placeholder="أدخل اسم التطبيق">
+    <button onclick="searchApp()">بحث</button>
+
+    <h3>النتائج:</h3>
+    <ul id="results"></ul>
+
+    <div class="modal-content" id="appDetailsModal" style="display: none;">
+        <h3>تعديل معلومات التطبيق</h3>
+        <label for="appImage">صورة التطبيق:</label>
+        <img id="appImage" class="app-image" src="" alt="صورة التطبيق">
+        <label for="appName">اسم التطبيق:</label>
+        <input type="text" id="appName">
+
+        <label for="bundleId">Bundle ID:</label>
+        <input type="text" id="bundleId">
+
+        <label for="ipaId">ID من OMTK:</label>
+        <input type="number" id="ipaId" placeholder="أدخل ID من OMTK" oninput="fetchIpaData()">
+
+        <label for="version">رقم الإصدار:</label>
+        <input type="text" id="version" placeholder="" readonly>
+
+        <label for="modifiedDate">تاريخ التعديل:</label>
+        <input type="text" id="modifiedDate" readonly>
+            <label for="categories">التصنيفات:</label>
+<div id="categories">
+    <label><input type="checkbox" value="1"> تطبيقات</label>
+    <label><input type="checkbox" value="2"> ألعاب</label>
+    <label><input type="checkbox" value="3"> تواصل اجتماعي</label>
+    <label><input type="checkbox" value="8"> تصميم</label>
+    <label><input type="checkbox" value="4"> سينما</label>
+    <label><input type="checkbox" value="6"> ننصح بها</label>
+    <label><input type="checkbox" value="7"> الطب</label>
+</div>
+
+        <label for="description">الوصف:</label>
+        <textarea id="description" rows="5" placeholder="اكتب وصف التطبيق..."></textarea>
+
+        
+
+        <label for="appSize">حجم التطبيق:</label>
+        <input type="text" id="appSize" readonly>
+
+        <label for="downloadLink">رابط تحميل التطبيق:</label>
+        <input type="text" id="downloadLink" placeholder="أدخل رابط تحميل التطبيق">
+
+        <button onclick="saveEditedApp()">حفظ</button>
+        <button onclick="closeModal()">إغلاق</button>
+    </div>
+
+    <script>
+        let currentAppData = {};
+
+        function searchApp() {
+            const searchTerm = document.getElementById('searchTerm').value;
+
+            if (!searchTerm) {
+                alert('يرجى إدخال اسم التطبيق.');
+                return;
+            }
+
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=software`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsList = document.getElementById('results');
+                    resultsList.innerHTML = '';
+                    
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(result => {
+                            const listItem = document.createElement('li');
+                            listItem.classList.add('app-item');
+                            listItem.onclick = () => openAppDetails(result);
+
+                            const appImage = document.createElement('img');
+                            appImage.src = result.artworkUrl100;
+                            appImage.alt = `صورة ${result.trackName}`;
+                            appImage.classList.add('app-image');
+
+                            const appName = document.createElement('span');
+                            appName.textContent = result.trackName;
+
+                            listItem.appendChild(appName);
+                            listItem.appendChild(appImage);
+                            resultsList.appendChild(listItem);
+                        });
+                    } else {
+                        resultsList.innerHTML = 'لا توجد نتائج.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('فشل في جلب البيانات من Apple.');
+                });
+        }
+
+        function openAppDetails(appData) {
+            currentAppData = appData; // حفظ بيانات التطبيق الحالي
+
+            document.getElementById('results').style.display = 'none';
+
+            // ملء الحقول مع بيانات التطبيق
+            document.getElementById('appName').value = appData.trackName;
+            document.getElementById('bundleId').value = appData.bundleId;
+            document.getElementById('description').value = '';
+            document.getElementById('appImage').src = appData.artworkUrl100;
+
+            // إظهار حجم التطبيق كما هو دون تعديله
+            document.getElementById('appSize').value = appData.fileSizeBytes;
+            document.getElementById('downloadLink').value = '';
+
+            document.getElementById('appDetailsModal').style.display = 'block';
+        }
+
+        function fetchIpaData() {
+            const ipaId = document.getElementById('ipaId').value;
+
+            if (!ipaId || isNaN(ipaId) || ipaId.trim() === '') {
+                alert('يرجى إدخال ID صالح.');
+                return;
+            }
+
+            const apiUrl = `https://www.omtk.vip/wp-json/wp/v2/posts/${ipaId}`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.modified && data.title.rendered) {
+                        const modifiedDate = data.modified;
+                        const versionMatch = data.title.rendered.match(/v\d+(\.\d+)*\b/i);
+if (versionMatch) {
+    let version = versionMatch[0];
+    version = version.replace(/^v/, ""); // إزالة الحرف v
+    document.getElementById('version').value = version;
+} else {
+    alert('لم يتم العثور على رقم إصدار في البيانات.');
+}
+
+                        document.getElementById('modifiedDate').value = modifiedDate;
+                    } else {
+                        
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('فشل في جلب البيانات. تأكد من صحة ID.');
+                });
+        }
+
+        function convertImageToBase64(url, callback) {
+            const img = new Image();
+            img.crossOrigin = "Anonymous"; // يسمح بتحميل الصورة من مصدر خارجي
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                const base64Image = canvas.toDataURL('image/png'); // تحويل الصورة إلى Base64
+                callback(base64Image); // استدعاء callback مع الصورة المحوّلة
+            };
+            img.src = url; // تحميل الصورة من الرابط
+        }
+
+        function sendToTelegram(appData) {
+            const botToken = '7451995301:AAE7iTmEVBia3C9XTL1sZfasSKDkcpGsJT8';  // استبدل بـ توكن البوت الخاص بك
+            const channelId = '@djhdjo';  // استبدل بـ معرف القناة الخاصة بك
+
+            const message = `
+            - ${appData.appName}
+            تطبيق جديد: (${appData.version})
+
+            ${appData.description}
+            `;
+
+            // روابط الصور
+            // روابط الصور
+const backgroundUrl = 'hi.png'; // الصورة الخلفية
+const overlayUrl = appData.appImage.replace('100x100', '512x512'); // تعديل أبعاد الصورة الإضافية
+
+            convertImageToBase64(overlayUrl, function(base64Image) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // تحميل الصورة الخلفية
+                const backgroundImg = new Image();
+                backgroundImg.onload = function () {
+                    // ضبط أبعاد الـ Canvas
+                    canvas.width = backgroundImg.width;
+                    canvas.height = backgroundImg.height;
+
+                    // رسم الصورة الخلفية
+                    ctx.drawImage(backgroundImg, 0, 0);
+
+                    // تحميل الصورة الإضافية (الصورة التي تم تحويلها إلى Base64)
+                    const overlayImg = new Image();
+                    overlayImg.onload = function () {
+                        // تحديد أبعاد وموقع الصورة الإضافية
+                        const overlayWidth = 275; // العرض الثابت
+                        const overlayHeight = 275; // الطول الثابت
+                        const overlayX = canvas.width - overlayWidth - 130; // تحريكها إلى اليسار (130 بكسل)
+                        const overlayY = canvas.height - overlayHeight - 220; // تحريكها إلى الأعلى (220 بكسل)
+
+                        // جعل الصورة بحواف دائرية (تقويس 30px)
+                        const radius = 30;
+                        ctx.beginPath();
+                        ctx.moveTo(overlayX + radius, overlayY);
+                        ctx.lineTo(overlayX + overlayWidth - radius, overlayY);
+                        ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY, overlayX + overlayWidth, overlayY + radius);
+                        ctx.lineTo(overlayX + overlayWidth, overlayY + overlayHeight - radius);
+                        ctx.quadraticCurveTo(overlayX + overlayWidth, overlayY + overlayHeight, overlayX + overlayWidth - radius, overlayY + overlayHeight);
+                        ctx.lineTo(overlayX + radius, overlayY + overlayHeight);
+                        ctx.quadraticCurveTo(overlayX, overlayY + overlayHeight, overlayX, overlayY + overlayHeight - radius);
+                        ctx.lineTo(overlayX, overlayY + radius);
+                        ctx.quadraticCurveTo(overlayX, overlayY, overlayX + radius, overlayY);
+                        ctx.closePath();
+
+                        // رسم الصورة داخل الإطار المقوس
+                        ctx.save();
+                        ctx.clip();
+                        ctx.drawImage(overlayImg, overlayX, overlayY, overlayWidth, overlayHeight);
+                        ctx.restore();
+
+                        // تحويل الصورة إلى Blob وإرسالها إلى تليغرام
+                        canvas.toBlob(function (blob) {
+                            const formData = new FormData();
+                            formData.append('chat_id', channelId);
+                            formData.append('caption', message);
+                            formData.append('photo', blob);
+
+                            fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                                method: 'POST',
+                                body: formData
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.ok) {
+                                        console.log('تم إرسال الرسالة إلى تليجرام بنجاح!');
+                                    } else {
+                                        console.error('فشل إرسال الرسالة:', data);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('حدث خطأ:', error);
+                                });
+                        }, 'image/jpeg');
+                    };
+                    overlayImg.src = base64Image; // استخدام الصورة التي تم تحويلها إلى Base64
+                };
+
+                backgroundImg.src = backgroundUrl;
+            });
+        }
+
+
+function saveEditedApp() {
+    const appName = document.getElementById('appName').value;
+    const bundleId = document.getElementById('bundleId').value;
+    const ipaId = document.getElementById('ipaId').value;
+    const version = document.getElementById('version').value;
+    const modifiedDate = document.getElementById('modifiedDate').value;
+    const description = document.getElementById('description').value;
+    const appImage = document.getElementById('appImage').src;
+    const appSize = document.getElementById('appSize').value;
+    const downloadLink = document.getElementById('downloadLink').value;
+
+    // قراءة التصنيفات المختارة
+    const selectedCategories = [];
+    const categoryCheckboxes = document.querySelectorAll('#categories input[type="checkbox"]');
+    categoryCheckboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            selectedCategories.push(parseInt(checkbox.value)); // إضافة القيمة المختارة
+        }
+    });
+
+    if (!appName || !bundleId || !ipaId || !version || !modifiedDate || !description || !appImage || !downloadLink || selectedCategories.length === 0) {
+        alert('يرجى ملء جميع الحقول واختيار تصنيف واحد على الأقل.');
+        return;
+    }
+
+    const appData = {
+        appName: appName,
+        bundleId: bundleId,
+        ipaId: ipaId,
+        version: version,
+        modifiedDate: modifiedDate,
+        description: description,
+        appImage: appImage,
+        appSize: appSize,
+        downloadLink: downloadLink,
+        categories: selectedCategories // إضافة التصنيفات المختارة
+    };
+
+    const jsonData = JSON.stringify(appData);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'save_app.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            alert('تم حفظ التطبيق بنجاح!');
+            clearFields();
+
+            // إرسال البيانات إلى تليجرام بعد حفظ التطبيق
+            sendToTelegram(appData);
+        } else {
+            alert('حدث خطأ أثناء حفظ البيانات.');
+        }
+    };
+    xhr.send(jsonData);
+}
+        function closeModal() {
+            document.getElementById('appDetailsModal').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function clearFields() {
+            document.getElementById('appName').value = '';
+            document.getElementById('bundleId').value = '';
+            document.getElementById('ipaId').value = '';
+            document.getElementById('version').value = '';
+            document.getElementById('modifiedDate').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('appImage').src = '';
+            document.getElementById('appSize').value = '';
+            document.getElementById('downloadLink').value = '';
+        }
+async function checkForUpdates() {
+    const jsonUrl = 'app_data.json';
+
+    try {
+        const response = await fetch(jsonUrl);
+        const data = await response.json();
+        const apps = data.apps;
+
+        if (!apps || apps.length === 0) {
+            alert('لا توجد تطبيقات لفحص التحديثات.');
+            return;
+        }
+
+        for (let i = 0; i < apps.length; i++) {
+            const app = apps[i];
+            const { ipaId, version, versionDate, downloadURL } = app;
+
+            if (!ipaId) {
+                console.warn(`لا يوجد ipaId للتطبيق: ${app.name}`);
+                continue;
+            }
+
+            const apiUrl = `https://ipaomtk.com/wp-json/wp/v2/posts/${ipaId}`;
+            const apiResponse = await fetch(apiUrl);
+            const apiData = await apiResponse.json();
+
+            if (apiData.modified && apiData.title.rendered) {
+                const newModifiedDate = apiData.modified;
+                const versionMatch = apiData.title.rendered.match(/v\d+(\.\d+)*\b/i);
+                const newVersion = versionMatch ? versionMatch[0].replace('v', '') : null;
+
+                // تحقق مما إذا كان الإصدار أو تاريخ التحديث قد تغير
+                if (newVersion && (newVersion !== version || newModifiedDate !== versionDate)) {
+                    // تحديث الإصدار وتاريخ التحديث
+                    app.version = newVersion;
+                    app.versionDate = newModifiedDate;
+
+                    alert(`تم تحديث التطبيق: ${app.name}\nالإصدار: ${newVersion}\nتاريخ التعديل: ${newModifiedDate}`);
+
+                    // تحديث الرابط إذا كان الإصدار قد تغير
+                    if (downloadURL && newVersion && !downloadURL.includes(newVersion)) {
+                        // تحديث الرابط ليتضمن الإصدار الجديد
+                        const updatedDownloadLink = downloadURL.replace(/_(\d+\.\d+\.\d+)\.ipa$/, `_${newVersion}.ipa`);
+                        app.downloadURL = updatedDownloadLink;
+                    }
+
+                    // إضافة بيانات التطبيق المحدثة مع الحفاظ على البيانات الأخرى
+                    app.appName = app.name || 'اسم غير معروف';
+                    app.appImage = app.iconURL || ''; // تأكد من أنك تحصل على الصورة من البيانات
+                    app.description = app.subtitle || 'لا يوجد وصف';
+
+                    // استدعاء دالة الإرسال إلى تليجرام (أو أي معالجة أخرى)
+                    sendToTelegramm(app);
+                }
+            }
+        }
+
+        // بعد التحقق من جميع التطبيقات، استدعاء دالة حفظ التحديثات إذا تم تحديث أي تطبيق
+        saveUpdatedData(data); // سيتم تحديث جميع التطبيقات (مع الحفاظ على القديم)
+
+    } catch (error) {
+        console.error('حدث خطأ أثناء فحص التحديثات:', error);
+        alert('فشل في فحص التحديثات.');
+    }
+}
+function sendToTelegramm(appData) {
+    const botToken = '7451995301:AAE7iTmEVBia3C9XTL1sZfasSKDkcpGsJT8';  // استبدل بـ توكن البوت الخاص بك
+    const channelId = '@djhdjo';  // استبدل بـ معرف القناة الخاصة بك
+
+    const message = `
+    - ${appData.appName}
+    تحديث جديد: (${appData.version})
+
+    ${appData.description}
+    `;
+
+    // استبدال رابط الصورة بجودة أعلى
+    const highQualityImage = appData.appImage.replace('100x100', '512x512'); // تأكد أن الرابط يدعم هذا التعديل
+
+    const formData = new FormData();
+    formData.append('chat_id', channelId);
+    formData.append('caption', message);
+    formData.append('photo', highQualityImage); // إضافة الصورة المحسنة
+
+    fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            console.log('تم إرسال الرسالة إلى تليجرام بنجاح!');
+        } else {
+            console.error('فشل إرسال الرسالة:', data);
+        }
+    })
+    .catch(error => {
+        console.error('حدث خطأ:', error);
+    });
+}
+function saveUpdatedData(updatedData) {
+    fetch('save_update.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedData)
+    })
+    .then(response => response.text())
+    .then(result => {
+        console.log(result);
+        alert('تم حفظ التحديثات بنجاح.');
+    })
+    .catch(error => {
+        console.error('فشل في حفظ التحديثات:', error);
+        alert('فشل في حفظ التحديثات.');
+    });
+}
+    </script>
+
+</body>
+</html>
